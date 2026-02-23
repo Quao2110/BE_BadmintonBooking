@@ -9,7 +9,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Interfaces\IRepositories\" />
 		<Folder Include="Interfaces\IServices\" />
 		<Folder Include="Interfaces\IUnitOfWork\" />
 	</ItemGroup>

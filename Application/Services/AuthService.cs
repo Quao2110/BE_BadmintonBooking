@@ -98,7 +98,7 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _unitOfWork.UserRepository.AddAsync(user);
+        await _unitOfWork.UserRepository.CreateAsync(user);
         await _unitOfWork.SaveChangesAsync();
         _cache.Remove($"Registration_{request.Email}");
 
@@ -130,7 +130,7 @@ public class AuthService : IAuthService
                     IsTwoFactorEnabled = false,
                     CreatedAt = DateTime.UtcNow
                 };
-                await _unitOfWork.UserRepository.AddAsync(user);
+                await _unitOfWork.UserRepository.CreateAsync(user);
                 await _unitOfWork.SaveChangesAsync();
             }
             else if (user.IsActive == false)
@@ -163,7 +163,7 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _unitOfWork.UserRepository.AddAsync(newUser);
+        await _unitOfWork.UserRepository.CreateAsync(newUser);
         await _unitOfWork.SaveChangesAsync();
 
         return "Account registered successfully!";

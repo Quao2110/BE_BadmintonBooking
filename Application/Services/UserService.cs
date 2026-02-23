@@ -13,13 +13,13 @@ public class UserService : IUserService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    private readonly IWebHostEnvironment _env;
+    private readonly IFileService _fileService;
 
-    public UserService(IUnitOfWork unitOfWork, IMapper mapper, IWebHostEnvironment env)
+    public UserService(IUnitOfWork unitOfWork, IMapper mapper, IFileService fileService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
-        _env = env;
+        _fileService = fileService;
     }
 
     public async Task<IEnumerable<UserResponse>> GetAllAsync()
@@ -46,10 +46,10 @@ public class UserService : IUserService
 
         if (request.Avatar != null && request.Avatar.Length > 0)
         {
-            user.AvatarUrl = await SaveAvatarFileAsync(request.Avatar);
+            user.AvatarUrl = await _fileService.SaveFileAsync(request.Avatar, "avatars");
         }
 
-        await _unitOfWork.UserRepository.UpdateAsync(user);
+        _unitOfWork.UserRepository.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
         return _mapper.Map<UserResponse>(user);
@@ -60,7 +60,7 @@ public class UserService : IUserService
         var user = await _unitOfWork.UserRepository.GetByIdAsync(id)
             ?? throw new Exception("User not found.");
 
-        await _unitOfWork.UserRepository.DeleteAsync(id);
+        _unitOfWork.UserRepository.DeleteById(id);
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -74,7 +74,7 @@ public class UserService : IUserService
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
-        await _unitOfWork.UserRepository.UpdateAsync(user);
+        _unitOfWork.UserRepository.Update(user);
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -86,9 +86,9 @@ public class UserService : IUserService
         if (file == null || file.Length == 0)
             throw new Exception("Invalid image file.");
 
-        user.AvatarUrl = await SaveAvatarFileAsync(file);
+        user.AvatarUrl = await _fileService.SaveFileAsync(file, "avatars");
 
-        await _unitOfWork.UserRepository.UpdateAsync(user);
+        _unitOfWork.UserRepository.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
         return user.AvatarUrl;
@@ -113,10 +113,10 @@ public class UserService : IUserService
 
         if (request.Avatar != null && request.Avatar.Length > 0)
         {
-            user.AvatarUrl = await SaveAvatarFileAsync(request.Avatar);
+            user.AvatarUrl = await _fileService.SaveFileAsync(request.Avatar, "avatars");
         }
 
-        await _unitOfWork.UserRepository.AddAsync(user);
+        await _unitOfWork.UserRepository.CreateAsync(user);
         await _unitOfWork.SaveChangesAsync();
 
         return _mapper.Map<UserResponse>(user);
@@ -124,22 +124,5 @@ public class UserService : IUserService
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    private async Task<string> SaveAvatarFileAsync(IFormFile file)
-    {
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!allowedExtensions.Contains(ext))
-            throw new Exception("Only image files are accepted: jpg, jpeg, png, gif, webp.");
 
-        var uploadFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "avatars");
-        Directory.CreateDirectory(uploadFolder);
-
-        var fileName = $"{Guid.NewGuid()}{ext}";
-        var filePath = Path.Combine(uploadFolder, fileName);
-
-        using var stream = new FileStream(filePath, FileMode.Create);
-        await file.CopyToAsync(stream);
-
-        return $"/avatars/{fileName}";
-    }
 }
