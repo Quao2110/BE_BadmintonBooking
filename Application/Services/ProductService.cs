@@ -105,6 +105,9 @@ public class ProductService : IProductService
         var (items, totalItems) = await _unitOfWork.ProductRepository.GetPagedAsync(
             query.Search,
             query.CategoryId,
+            query.MinPrice,
+            query.MaxPrice,
+            query.Sort,
             page,
             pageSize);
 

@@ -33,6 +33,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     public async Task<(IEnumerable<Product> Items, int TotalItems)> GetPagedAsync(
         string? search,
         Guid? categoryId,
+        decimal? minPrice,
+        decimal? maxPrice,
+        string? sort,
         int page,
         int pageSize)
     {
@@ -52,9 +55,26 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             query = query.Where(p => p.CategoryId == categoryId.Value);
         }
 
+        if (minPrice.HasValue)
+        {
+            query = query.Where(p => p.Price >= minPrice.Value);
+        }
+
+        if (maxPrice.HasValue)
+        {
+            query = query.Where(p => p.Price <= maxPrice.Value);
+        }
+
         var totalItems = await query.CountAsync();
+        query = sort?.ToLower() switch
+        {
+            "price_asc" => query.OrderBy(p => p.Price),
+            "price_desc" => query.OrderByDescending(p => p.Price),
+            "newest" => query.OrderByDescending(p => p.Id),
+            _ => query.OrderBy(p => p.ProductName)
+        };
+
         var items = await query
-            .OrderBy(p => p.ProductName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
