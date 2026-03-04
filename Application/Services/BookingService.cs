@@ -249,6 +249,11 @@ public class BookingService : IBookingService
             throw new Exception("CourtId is required.");
         }
 
+        if (request.StartTime <= DateTime.Now)
+        {
+            throw new Exception("Cannot create booking in the past.");
+        }
+
         if (request.StartTime >= request.EndTime)
         {
             throw new Exception("EndTime must be greater than StartTime.");
