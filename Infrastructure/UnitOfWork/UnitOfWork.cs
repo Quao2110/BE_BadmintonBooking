@@ -12,6 +12,7 @@ public class UnitOfWork : IUnitOfWork
     private IDbContextTransaction? _transaction;
     private bool _disposed;
     private IUserRepository? _users;
+    private IBookingRepository? _bookings;
     private ICategoryRepository? _categories;
     private IServiceRepository? _services;
     private IProductRepository? _products;
@@ -27,6 +28,7 @@ public class UnitOfWork : IUnitOfWork
     }
 
     public IUserRepository UserRepository => _users ??= new UserRepository(_context);
+    public IBookingRepository BookingRepository => _bookings ??= new BookingRepository(_context);
     public ICategoryRepository CategoryRepository => _categories ??= new CategoryRepository(_context);
     public IServiceRepository ServiceRepository => _services ??= new ServiceRepository(_context);
     public IProductRepository ProductRepository => _products ??= new ProductRepository(_context);

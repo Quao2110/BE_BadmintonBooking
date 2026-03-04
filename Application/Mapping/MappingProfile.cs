@@ -7,6 +7,7 @@ using Application.DTOs.ResponseDTOs.Court;
 using Application.DTOs.ResponseDTOs.CourtImage;
 using Application.DTOs.ResponseDTOs.Shop;
 using Application.DTOs.ResponseDTOs.Notification;
+using Application.DTOs.ResponseDTOs.Booking;
 using AutoMapper;
 using Domain.Entities;
 
@@ -30,6 +31,13 @@ namespace Application.Mapping
                 .ForMember(dest => dest.ImageUrls,
                     opt => opt.MapFrom(src => src.ShopImages.Select(si => si.ImageUrl).ToList()));
             CreateMap<Notification, NotificationResponse>();
+            CreateMap<Booking, BookingHistoryItemResponse>()
+                .ForMember(dest => dest.CourtName,
+                    opt => opt.MapFrom(src => src.Court != null ? src.Court.CourtName : string.Empty))
+                .ForMember(dest => dest.TotalPrice,
+                    opt => opt.MapFrom(src => src.TotalPrice ?? 0))
+                .ForMember(dest => dest.IsPaid,
+                    opt => opt.MapFrom(src => src.IsPaid ?? false));
         }
     }
 }
