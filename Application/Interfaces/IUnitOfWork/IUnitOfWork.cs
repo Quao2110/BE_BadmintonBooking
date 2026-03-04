@@ -5,6 +5,7 @@ namespace Application.Interfaces.IUnitOfWork;
 public interface IUnitOfWork : IDisposable
 {
     IUserRepository UserRepository { get; }
+    IBookingRepository BookingRepository { get; }
     ICategoryRepository CategoryRepository { get; }
     IServiceRepository ServiceRepository { get; }
     IProductRepository ProductRepository { get; }
