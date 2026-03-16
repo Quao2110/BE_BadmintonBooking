@@ -24,6 +24,13 @@ public class ShopsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("all")]
+public async Task<IActionResult> GetAllShops()
+{
+    var result = await _shopService.GetAllShopsAsync();
+    return Ok(result);
+}
+
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateShopInfo(Guid id, [FromBody] ShopUpdateRequest request)

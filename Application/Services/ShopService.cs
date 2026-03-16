@@ -24,6 +24,12 @@ public class ShopService : IShopService
         return _mapper.Map<ShopResponse>(shop);
     }
 
+    public async Task<List<ShopResponse>> GetAllShopsAsync()
+{
+    var shops = await _unitOfWork.ShopRepository.GetAllAsync();
+    return _mapper.Map<List<ShopResponse>>(shops);
+}
+
     public async Task<ShopResponse> UpdateShopInfoAsync(Guid id, ShopUpdateRequest request)
     {
         // Tọa độ hợp lệ: Lat -90 đến 90, Lng -180 đến 180
