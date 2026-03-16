@@ -67,7 +67,7 @@ public class OrderService : IOrderService
                 PaymentMethod = request.PaymentMethod,
                 PaymentStatus = "Pending", // Pending, Paid, Failed
                 OrderStatus = "Pending", // Pending, Confirmed, Shipping, Delivered, Cancelled
-                OrderDate = DateTime.UtcNow,
+                OrderDate = DateTime.Now,
                 TotalAmount = 0
             };
 
@@ -114,7 +114,7 @@ public class OrderService : IOrderService
             {
                 _unitOfWork.CartItemRepository.Delete(cartItem);
             }
-            cart.UpdatedAt = DateTime.UtcNow;
+            cart.UpdatedAt = DateTime.Now;
             _unitOfWork.CartRepository.Update(cart);
             await _unitOfWork.SaveChangesAsync();
 

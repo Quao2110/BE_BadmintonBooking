@@ -29,7 +29,7 @@ public class CartService : ICartService
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.Now
             };
             await _unitOfWork.CartRepository.CreateAsync(cart);
             await _unitOfWork.SaveChangesAsync();
@@ -60,7 +60,7 @@ public class CartService : ICartService
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.Now
             };
             await _unitOfWork.CartRepository.CreateAsync(cart);
             var result = await _unitOfWork.SaveChangesAsync();
@@ -84,7 +84,7 @@ public class CartService : ICartService
             await _unitOfWork.CartItemRepository.CreateAsync(cartItem);
         }
 
-        cart.UpdatedAt = DateTime.UtcNow;
+        cart.UpdatedAt = DateTime.Now;
         await _unitOfWork.SaveChangesAsync();
 
         var updatedCart = await _unitOfWork.CartRepository.GetByUserIdWithIncludesAsync(userId)
@@ -114,7 +114,7 @@ public class CartService : ICartService
 
         cartItem.Quantity = request.Quantity;
 
-        cart.UpdatedAt = DateTime.UtcNow;
+        cart.UpdatedAt = DateTime.Now;
         await _unitOfWork.SaveChangesAsync();
 
         var updatedCart = await _unitOfWork.CartRepository.GetByUserIdWithIncludesAsync(userId)
@@ -135,7 +135,7 @@ public class CartService : ICartService
 
         _unitOfWork.CartItemRepository.Delete(cartItem);
 
-        cart.UpdatedAt = DateTime.UtcNow;
+        cart.UpdatedAt = DateTime.Now;
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -149,7 +149,7 @@ public class CartService : ICartService
             _unitOfWork.CartItemRepository.Delete(item);
         }
 
-        cart.UpdatedAt = DateTime.UtcNow;
+        cart.UpdatedAt = DateTime.Now;
         await _unitOfWork.SaveChangesAsync();
     }
 }

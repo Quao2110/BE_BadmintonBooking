@@ -23,6 +23,7 @@ public class PaymentService : IPaymentService
         if (request.AmountVnd <= 0)
             throw new Exception("AmountVnd must be greater than 0.");
 
+        request.OrderInfo = request.TxnRef;
         if (string.IsNullOrWhiteSpace(request.OrderInfo))
             throw new Exception("OrderInfo is required.");
 
@@ -100,6 +101,9 @@ public class PaymentService : IPaymentService
 
         if (string.Equals(order.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase))
         {
+            await ReconcileOrderAfterPaymentSuccessAsync(order);
+            _unitOfWork.OrderRepository.Update(order);
+            await _unitOfWork.SaveChangesAsync();
             return new { RspCode = "02", Message = "Order already confirmed" };
         }
 
@@ -107,10 +111,8 @@ public class PaymentService : IPaymentService
         order.PaymentStatus = success ? "Paid" : "Failed";
 
         // Auto-confirm once online payment is captured.
-        if (success && string.Equals(order.OrderStatus, "Pending", StringComparison.OrdinalIgnoreCase))
-        {
-            order.OrderStatus = "Confirmed";
-        }
+        if (success)
+            await ReconcileOrderAfterPaymentSuccessAsync(order);
 
         _unitOfWork.OrderRepository.Update(order);
         await _unitOfWork.SaveChangesAsync();
@@ -161,6 +163,57 @@ public class PaymentService : IPaymentService
     {
         return string.Equals(responseCode, "00", StringComparison.OrdinalIgnoreCase)
                && string.Equals(transactionStatus, "00", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task ReconcileOrderAfterPaymentSuccessAsync(Domain.Entities.Order order)
+    {
+        if (string.Equals(order.OrderStatus, "Pending", StringComparison.OrdinalIgnoreCase))
+            order.OrderStatus = "Confirmed";
+
+        var orderDetails = await _unitOfWork.OrderDetailRepository.GetByOrderIdAsync(order.Id);
+        var hasOrderDetails = orderDetails.Any();
+
+        var cart = await _unitOfWork.CartRepository.GetByUserIdWithIncludesAsync(order.UserId);
+
+        if (!hasOrderDetails && cart is { CartItems.Count: > 0 })
+        {
+            decimal totalAmount = 0;
+
+            foreach (var cartItem in cart.CartItems)
+            {
+                var quantity = cartItem.Quantity ?? 0;
+                if (quantity <= 0)
+                    continue;
+
+                var product = await _unitOfWork.ProductRepository.GetByIdAsync(cartItem.ProductId)
+                    ?? throw new Exception($"Product {cartItem.ProductId} not found.");
+
+                await _unitOfWork.OrderDetailRepository.CreateAsync(new Domain.Entities.OrderDetail
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    ProductId = cartItem.ProductId,
+                    Quantity = quantity,
+                    UnitPrice = product.Price
+                });
+
+                totalAmount += product.Price * quantity;
+            }
+
+            if (totalAmount > 0)
+                order.TotalAmount = totalAmount;
+        }
+
+        if (cart is { CartItems.Count: > 0 })
+        {
+            foreach (var cartItem in cart.CartItems)
+            {
+                _unitOfWork.CartItemRepository.Delete(cartItem);
+            }
+
+            cart.UpdatedAt = DateTime.Now;
+            _unitOfWork.CartRepository.Update(cart);
+        }
     }
 
     private static string? GetValue(IReadOnlyDictionary<string, string> queryParams, string key)

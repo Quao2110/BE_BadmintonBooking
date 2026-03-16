@@ -83,13 +83,17 @@ namespace Infrastructure.Repositories
 
         /// <summary>
         /// Updates an existing entity. 
-        /// <para>Note: This method clears the change tracker to avoid conflicts before attaching the modified entity.</para>
+        /// <para>Attach and mark modified without clearing the global change tracker.</para>
         /// </summary>
         public void Update(T entity)
         {
-            _context.ChangeTracker.Clear();
-            var tracker = _context.Attach(entity);
-            tracker.State = EntityState.Modified;
+            var entry = _context.Entry(entity);
+            if (entry.State == EntityState.Detached)
+            {
+                _context.Set<T>().Attach(entity);
+            }
+
+            _context.Entry(entity).State = EntityState.Modified;
         }
     }
 }
