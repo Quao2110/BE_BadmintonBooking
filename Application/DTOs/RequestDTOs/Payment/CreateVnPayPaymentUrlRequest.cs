@@ -2,8 +2,8 @@ namespace Application.DTOs.RequestDTOs.Payment;
 
 public class CreateVnPayPaymentUrlRequest
 {
-    public Guid OrderId { get; set; }
-
-    // Optional custom deep link / frontend return URL. Falls back to configured default if omitted.
-    public string? ReturnUrl { get; set; }
+    public int AmountVnd { get; set; }
+    public string OrderInfo { get; set; } = string.Empty;
+    public string TxnRef { get; set; } = string.Empty;
+    public string? IpAddr { get; set; }
 }

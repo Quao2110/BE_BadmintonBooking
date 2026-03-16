@@ -69,8 +69,13 @@ app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 
 // Xác thực & Phân quyền
-app.UseAuthentication();
-app.UseAuthorization();
+#if DEBUG == false
+    app.UseAuthentication();
+    app.UseAuthorization();
+#else
+// Khi Debug: Có thể log ra để biết đang tắt bảo mật
+Console.WriteLine("⚠️ Debug Mode: Authentication & Authorization are disabled.");
+#endif
 
 app.MapControllers();
 

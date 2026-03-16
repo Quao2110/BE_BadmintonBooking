@@ -26,7 +26,7 @@ public class PaymentController : ControllerBase
         {
             var userId = GetUserId();
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-            var result = await _paymentService.CreateVnPayPaymentUrlAsync(userId, request.OrderId, request.ReturnUrl, clientIp);
+            var result = await _paymentService.CreateVnPayPaymentUrlAsync(userId, request, clientIp);
             return Ok(ApiResponse.Success("VNPAY payment link created successfully.", result));
         }
         catch (Exception ex)

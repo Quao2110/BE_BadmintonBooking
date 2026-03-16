@@ -1,4 +1,5 @@
 using Application.DTOs.ResponseDTOs.Payment;
+using Application.DTOs.RequestDTOs.Payment;
 using Application.Interfaces.IServices;
 using Application.Interfaces.IUnitOfWork;
 using Domain.Const;
@@ -16,10 +17,21 @@ public class PaymentService : IPaymentService
 
     public async Task<CreatePaymentUrlResponse> CreateVnPayPaymentUrlAsync(
         Guid userId,
-        Guid orderId,
-        string? returnUrl,
+        CreateVnPayPaymentUrlRequest request,
         string? clientIp)
     {
+        if (request.AmountVnd <= 0)
+            throw new Exception("AmountVnd must be greater than 0.");
+
+        if (string.IsNullOrWhiteSpace(request.OrderInfo))
+            throw new Exception("OrderInfo is required.");
+
+        if (string.IsNullOrWhiteSpace(request.TxnRef))
+            throw new Exception("TxnRef is required.");
+
+        if (!Guid.TryParse(request.TxnRef, out var orderId))
+            throw new Exception("TxnRef must be a valid order id.");
+
         var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId)
             ?? throw new Exception("Order not found.");
 
@@ -35,11 +47,17 @@ public class PaymentService : IPaymentService
         if ((order.TotalAmount ?? 0) <= 0)
             throw new Exception("Invalid order amount.");
 
+        var expectedAmountVnd = (int)Math.Round(order.TotalAmount!.Value, MidpointRounding.AwayFromZero);
+        if (request.AmountVnd != expectedAmountVnd)
+            throw new Exception("AmountVnd does not match order total amount.");
+
+        var ipAddr = string.IsNullOrWhiteSpace(request.IpAddr) ? clientIp : request.IpAddr;
+
         var paymentUrl = VnPay.BuildPaymentUrl(
-            order.Id.ToString(),
-            order.TotalAmount!.Value,
-            returnUrl,
-            clientIp);
+            request.AmountVnd,
+            request.OrderInfo,
+            request.TxnRef,
+            ipAddr);
 
         return new CreatePaymentUrlResponse
         {

@@ -63,7 +63,7 @@ public class CartService : ICartService
                 UpdatedAt = DateTime.UtcNow
             };
             await _unitOfWork.CartRepository.CreateAsync(cart);
-            await _unitOfWork.SaveChangesAsync();
+            var result = await _unitOfWork.SaveChangesAsync();
         }
 
         // Check if product already in cart
@@ -71,7 +71,6 @@ public class CartService : ICartService
         if (existingItem != null)
         {
             existingItem.Quantity = (existingItem.Quantity ?? 0) + request.Quantity;
-            _unitOfWork.CartItemRepository.Update(existingItem);
         }
         else
         {
@@ -86,7 +85,6 @@ public class CartService : ICartService
         }
 
         cart.UpdatedAt = DateTime.UtcNow;
-        _unitOfWork.CartRepository.Update(cart);
         await _unitOfWork.SaveChangesAsync();
 
         var updatedCart = await _unitOfWork.CartRepository.GetByUserIdWithIncludesAsync(userId)
@@ -115,10 +113,8 @@ public class CartService : ICartService
             throw new Exception("Insufficient stock for this product.");
 
         cartItem.Quantity = request.Quantity;
-        _unitOfWork.CartItemRepository.Update(cartItem);
 
         cart.UpdatedAt = DateTime.UtcNow;
-        _unitOfWork.CartRepository.Update(cart);
         await _unitOfWork.SaveChangesAsync();
 
         var updatedCart = await _unitOfWork.CartRepository.GetByUserIdWithIncludesAsync(userId)
@@ -140,7 +136,6 @@ public class CartService : ICartService
         _unitOfWork.CartItemRepository.Delete(cartItem);
 
         cart.UpdatedAt = DateTime.UtcNow;
-        _unitOfWork.CartRepository.Update(cart);
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -155,7 +150,6 @@ public class CartService : ICartService
         }
 
         cart.UpdatedAt = DateTime.UtcNow;
-        _unitOfWork.CartRepository.Update(cart);
         await _unitOfWork.SaveChangesAsync();
     }
 }
