@@ -14,6 +14,10 @@ public interface IUnitOfWork : IDisposable
     ICourtImageRepository CourtImageRepository { get; }
     IShopRepository ShopRepository { get; }
     INotificationRepository NotificationRepository { get; }
+    ICartRepository CartRepository { get; }
+    ICartItemRepository CartItemRepository { get; }
+    IOrderRepository OrderRepository { get; }
+    IOrderDetailRepository OrderDetailRepository { get; }
     Task<int> SaveChangesAsync();
     Task CommitAsync();
 }

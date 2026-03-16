@@ -20,18 +20,19 @@ namespace Infrastructure.Configurations
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrEmpty(connectionString))
             {
-                throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+                connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=BadmintonBooking_PRM393;User ID=sa;Password=123456;Encrypt=False;TrustServerCertificate=True;";
+                //throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             }
 
             services.AddDbContext<BadmintonBooking_PRM393Context>(options =>
                 options.UseSqlServer(connectionString));
             services.Configure<BookingOptions>(configuration.GetSection("BookingOptions"));
 
-            // 2. C?u hình UnitOfWork & Repositories
+            // 2. C?u hï¿½nh UnitOfWork & Repositories
             services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
-            // 3. C?u hình Services
+            // 3. C?u hï¿½nh Services
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<IEmailService, EmailService>();
@@ -46,11 +47,14 @@ namespace Infrastructure.Configurations
             services.AddScoped<IShopService, ShopService>();
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IBookingService, BookingService>();
+            services.AddScoped<ICartService, CartService>();
+            services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IPaymentService, PaymentService>();
             // AI service for auto-replies
             services.AddScoped<IAiService, AiService>();
             services.Configure<AiOptions>(configuration.GetSection("AiOptions"));
 
-            // 4. C?u hình AutoMapper (Gom luôn vào dây cho Program.cs d? ch?t)
+            // 4. C?u hï¿½nh AutoMapper (Gom luï¿½n vï¿½o dï¿½y cho Program.cs d? ch?t)
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             return services;

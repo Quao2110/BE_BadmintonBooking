@@ -128,7 +128,7 @@ public class BookingService : IBookingService
             EndTime = request.EndTime,
             Status = BookingStatus.Pending,
             IsPaid = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         decimal servicesPrice = 0;

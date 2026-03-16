@@ -1,4 +1,21 @@
 <Solution>
+  <Folder Name="/.github/">
+    <File Path=".github/00_EXECUTIVE_SUMMARY.md" />
+    <File Path=".github/API_ENDPOINTS.md" />
+    <File Path=".github/CHECKLIST.md" />
+    <File Path=".github/COMPLETION_SUMMARY.md" />
+    <File Path=".github/DOCUMENTATION_INDEX.md" />
+    <File Path=".github/FILE_INDEX.md" />
+    <File Path=".github/FINAL_REPORT.md" />
+    <File Path=".github/IMPLEMENTATION_TASK5.md" />
+    <File Path=".github/KEY_POINTS.md" />
+    <File Path=".github/QUICK_START.md" />
+    <File Path=".github/README_TASK5.md" />
+    <File Path=".github/START_HERE.md" />
+    <File Path=".github/task_5.md" />
+    <File Path=".github/TRANSACTION_STOCK_MANAGEMENT.md" />
+    <File Path=".github/UNIT_TESTS.md" />
+  </Folder>
   <Project Path="Application/Application.csproj" />
   <Project Path="Domain/Domain.csproj" />
   <Project Path="Infrastructure/Infrastructure.csproj" />
