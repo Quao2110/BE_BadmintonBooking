@@ -20,7 +20,7 @@ namespace Infrastructure.Configurations
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrEmpty(connectionString))
             {
-                connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=BadmintonBooking_PRM393;User ID=sa;Password=123456;Encrypt=False;TrustServerCertificate=True;";
+                connectionString = "Server=localhost;Database=BadmintonBooking_PRM393;User ID=sa;Password=123456789;Encrypt=True;TrustServerCertificate=True;Pooling=False;MultipleActiveResultSets=False";
                 //throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             }
 
