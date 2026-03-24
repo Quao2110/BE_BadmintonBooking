@@ -8,6 +8,8 @@ using Application.DTOs.ResponseDTOs.CourtImage;
 using Application.DTOs.ResponseDTOs.Shop;
 using Application.DTOs.ResponseDTOs.Notification;
 using Application.DTOs.ResponseDTOs.Booking;
+using Application.DTOs.ResponseDTOs.Cart;
+using Application.DTOs.ResponseDTOs.Order;
 using AutoMapper;
 using Domain.Entities;
 
@@ -38,6 +40,14 @@ namespace Application.Mapping
                     opt => opt.MapFrom(src => src.TotalPrice ?? 0))
                 .ForMember(dest => dest.IsPaid,
                     opt => opt.MapFrom(src => src.IsPaid ?? false));
+
+            // Cart mappings
+            CreateMap<CartItem, CartItemResponse>();
+            CreateMap<Cart, CartResponse>();
+
+            // Order mappings
+            CreateMap<OrderDetail, OrderDetailResponse>();
+            CreateMap<Order, OrderResponse>();
         }
     }
 }

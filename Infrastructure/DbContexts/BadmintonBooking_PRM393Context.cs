@@ -150,6 +150,8 @@ public partial class BadmintonBooking_PRM393Context : DbContext
             entity.HasKey(e => e.Id).HasName("PK__ChatMess__3214EC073CC2AC38");
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            // MessageText should be stored as Unicode to preserve Vietnamese characters
+            entity.Property(e => e.MessageText).IsUnicode(true).HasColumnType("nvarchar(max)");
             entity.Property(e => e.ImageUrl).IsUnicode(false);
             entity.Property(e => e.SentAt)
                 .HasDefaultValueSql("(getdate())")
@@ -172,6 +174,8 @@ public partial class BadmintonBooking_PRM393Context : DbContext
             entity.HasIndex(e => e.UserId, "UX_Chat_User").IsUnique();
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            // LastMessage should be Unicode
+            entity.Property(e => e.LastMessage).IsUnicode(true).HasColumnType("nvarchar(max)");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -231,7 +235,9 @@ public partial class BadmintonBooking_PRM393Context : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.IsRead).HasDefaultValue(false);
-            entity.Property(e => e.Title).HasMaxLength(200);
+            // Title/Message should support Unicode
+            entity.Property(e => e.Title).HasMaxLength(200).IsUnicode(true);
+            entity.Property(e => e.Message).IsUnicode(true).HasColumnType("nvarchar(max)");
             entity.Property(e => e.Type)
                 .HasMaxLength(50)
                 .IsUnicode(false);

@@ -1,4 +1,4 @@
-﻿using Application.Interfaces.IRepositories;
+﻿﻿using Application.Interfaces.IRepositories;
 using Application.Interfaces.IUnitOfWork;
 using Infrastructure.DbContexts;
 using Infrastructure.Repositories;
@@ -21,6 +21,10 @@ public class UnitOfWork : IUnitOfWork
     private ICourtImageRepository? _courtImages;
     private IShopRepository? _shops;
     private INotificationRepository? _notifications;
+    private ICartRepository? _carts;
+    private ICartItemRepository? _cartItems;
+    private IOrderRepository? _orders;
+    private IOrderDetailRepository? _orderDetails;
 
     public UnitOfWork(BadmintonBooking_PRM393Context context)
     {
@@ -37,6 +41,10 @@ public class UnitOfWork : IUnitOfWork
     public ICourtImageRepository CourtImageRepository => _courtImages ??= new CourtImageRepository(_context);
     public IShopRepository ShopRepository => _shops ??= new ShopRepository(_context);
     public INotificationRepository NotificationRepository => _notifications ??= new NotificationRepository(_context);
+    public ICartRepository CartRepository => _carts ??= new CartRepository(_context);
+    public ICartItemRepository CartItemRepository => _cartItems ??= new CartItemRepository(_context);
+    public IOrderRepository OrderRepository => _orders ??= new OrderRepository(_context);
+    public IOrderDetailRepository OrderDetailRepository => _orderDetails ??= new OrderDetailRepository(_context);
 
     public async Task<int> SaveChangesAsync()
     {
