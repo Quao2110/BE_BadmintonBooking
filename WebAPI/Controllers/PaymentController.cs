@@ -35,6 +35,23 @@ public class PaymentController : ControllerBase
         }
     }
 
+    [Authorize]
+    [HttpPost("vnpay/create-booking-link")]
+    public async Task<IActionResult> CreateVnPayBookingLink([FromBody] CreateVnPayPaymentUrlRequest request)
+    {
+        try
+        {
+            var userId = GetUserId();
+            var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var result = await _paymentService.CreateVnPayBookingPaymentUrlAsync(userId, request, clientIp);
+            return Ok(ApiResponse.Success("VNPAY booking payment link created successfully.", result));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse.Fail(ex.Message));
+        }
+    }
+
     [AllowAnonymous]
     [HttpGet("vnpay/ipn")]
     public async Task<IActionResult> VnPayIpn()

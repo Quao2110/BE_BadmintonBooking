@@ -70,6 +70,54 @@ public class PaymentService : IPaymentService
         };
     }
 
+    public async Task<CreatePaymentUrlResponse> CreateVnPayBookingPaymentUrlAsync(
+        Guid userId,
+        CreateVnPayPaymentUrlRequest request,
+        string? clientIp)
+    {
+        if (request.AmountVnd <= 0)
+            throw new Exception("AmountVnd must be greater than 0.");
+
+        if (string.IsNullOrWhiteSpace(request.TxnRef))
+            throw new Exception("TxnRef is required.");
+
+        if (!Guid.TryParse(request.TxnRef, out var bookingId))
+            throw new Exception("TxnRef must be a valid booking id.");
+
+        var booking = await _unitOfWork.BookingRepository.GetByIdAsync(bookingId)
+            ?? throw new Exception("Booking not found.");
+
+        if (booking.UserId != userId)
+            throw new Exception("You are not allowed to pay this booking.");
+
+        if (booking.IsPaid == true)
+            throw new Exception("Booking is already paid.");
+
+        if ((booking.TotalPrice ?? 0) <= 0)
+            throw new Exception("Invalid booking amount.");
+
+        var expectedAmountVnd = (int)Math.Round(booking.TotalPrice!.Value, MidpointRounding.AwayFromZero);
+        if (request.AmountVnd != expectedAmountVnd)
+            throw new Exception("AmountVnd does not match booking total amount.");
+
+        var ipAddr = string.IsNullOrWhiteSpace(request.IpAddr) ? clientIp : request.IpAddr;
+
+        var paymentUrl = VnPay.BuildPaymentUrl(
+            request.AmountVnd,
+            request.TxnRef,
+            request.TxnRef,
+            ipAddr);
+
+        return new CreatePaymentUrlResponse
+        {
+            OrderId = booking.Id,
+            Amount = booking.TotalPrice.Value,
+            PaymentMethod = "VNPAY",
+            PaymentStatus = booking.IsPaid == true ? "Paid" : "Pending",
+            PaymentUrl = paymentUrl
+        };
+    }
+
     public async Task<object> HandleVnPayIpnAsync(IReadOnlyDictionary<string, string> queryParams)
     {
         if (!VnPay.VerifySignature(queryParams))
@@ -82,42 +130,62 @@ public class PaymentService : IPaymentService
         var responseCode = GetValue(queryParams, "vnp_ResponseCode");
         var transactionStatus = GetValue(queryParams, "vnp_TransactionStatus");
 
-        if (!Guid.TryParse(txnRef, out var orderId))
+        if (!Guid.TryParse(txnRef, out var entityId))
         {
-            return new { RspCode = "01", Message = "Order not found" };
+            return new { RspCode = "01", Message = "Transaction reference not found" };
         }
 
-        var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId);
-        if (order == null)
+        // Try Order first
+        var order = await _unitOfWork.OrderRepository.GetByIdAsync(entityId);
+        if (order != null)
         {
-            return new { RspCode = "01", Message = "Order not found" };
-        }
+            var expectedAmount = ((long)Math.Round((order.TotalAmount ?? 0) * 100M, MidpointRounding.AwayFromZero)).ToString();
+            if (!string.Equals(expectedAmount, amountRaw, StringComparison.Ordinal))
+                return new { RspCode = "04", Message = "Invalid amount" };
 
-        var expectedAmount = ((long)Math.Round((order.TotalAmount ?? 0) * 100M, MidpointRounding.AwayFromZero)).ToString();
-        if (!string.Equals(expectedAmount, amountRaw, StringComparison.Ordinal))
-        {
-            return new { RspCode = "04", Message = "Invalid amount" };
-        }
+            if (string.Equals(order.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase))
+            {
+                await ReconcileOrderAfterPaymentSuccessAsync(order);
+                _unitOfWork.OrderRepository.Update(order);
+                await _unitOfWork.SaveChangesAsync();
+                return new { RspCode = "02", Message = "Order already confirmed" };
+            }
 
-        if (string.Equals(order.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase))
-        {
-            await ReconcileOrderAfterPaymentSuccessAsync(order);
+            var success = IsPaymentSuccess(responseCode, transactionStatus);
+            order.PaymentStatus = success ? "Paid" : "Failed";
+            if (success)
+                await ReconcileOrderAfterPaymentSuccessAsync(order);
+
             _unitOfWork.OrderRepository.Update(order);
             await _unitOfWork.SaveChangesAsync();
-            return new { RspCode = "02", Message = "Order already confirmed" };
+            return new { RspCode = "00", Message = "Confirm Success" };
         }
 
-        var success = IsPaymentSuccess(responseCode, transactionStatus);
-        order.PaymentStatus = success ? "Paid" : "Failed";
+        // Try Booking
+        var booking = await _unitOfWork.BookingRepository.GetByIdAsync(entityId);
+        if (booking != null)
+        {
+            var expectedAmount = ((long)Math.Round((booking.TotalPrice ?? 0) * 100M, MidpointRounding.AwayFromZero)).ToString();
+            if (!string.Equals(expectedAmount, amountRaw, StringComparison.Ordinal))
+                return new { RspCode = "04", Message = "Invalid amount" };
 
-        // Auto-confirm once online payment is captured.
-        if (success)
-            await ReconcileOrderAfterPaymentSuccessAsync(order);
+            if (booking.IsPaid == true)
+                return new { RspCode = "02", Message = "Booking already paid" };
 
-        _unitOfWork.OrderRepository.Update(order);
-        await _unitOfWork.SaveChangesAsync();
+            var success = IsPaymentSuccess(responseCode, transactionStatus);
+            if (success)
+            {
+                booking.IsPaid = true;
+                if (string.Equals(booking.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                    booking.Status = "Confirmed";
+            }
 
-        return new { RspCode = "00", Message = "Confirm Success" };
+            _unitOfWork.BookingRepository.Update(booking);
+            await _unitOfWork.SaveChangesAsync();
+            return new { RspCode = "00", Message = "Confirm Success" };
+        }
+
+        return new { RspCode = "01", Message = "Transaction not found" };
     }
 
     public async Task<VnPayResultResponse> HandleVnPayReturnAsync(IReadOnlyDictionary<string, string> queryParams)
