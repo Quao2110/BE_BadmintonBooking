@@ -79,6 +79,36 @@ public class BookingsController : ControllerBase
         }
     }
 
+    [HttpGet("admin")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllForAdmin([FromQuery] AdminBookingQuery query)
+    {
+        try
+        {
+            var result = await _bookingService.GetAllForAdminAsync(query);
+            return Ok(ApiResponse.Success("Bookings retrieved successfully.", result));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse.Fail(ex.Message));
+        }
+    }
+
+    [HttpPut("admin/{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminUpdateBooking([FromRoute] Guid id, [FromBody] AdminBookingUpdateRequest request)
+    {
+        try
+        {
+            var result = await _bookingService.AdminUpdateBookingAsync(id, request);
+            return Ok(ApiResponse.Success("Booking updated successfully.", result));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse.Fail(ex.Message));
+        }
+    }
+
     [HttpPatch("{id:guid}/cancel")]
     [Authorize]
     public async Task<IActionResult> CancelMyBooking([FromRoute] Guid id)

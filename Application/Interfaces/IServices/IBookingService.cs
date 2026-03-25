@@ -11,4 +11,6 @@ public interface IBookingService
     Task<PagedResult<BookingHistoryItemResponse>> GetMyHistoryAsync(Guid userId, BookingHistoryQuery query);
     Task<BookingResponse> UpdateStatusAsync(Guid bookingId, string status);
     Task<BookingResponse> CancelMyBookingAsync(Guid userId, Guid bookingId);
+    Task<PagedResult<AdminBookingResponse>> GetAllForAdminAsync(AdminBookingQuery query);
+    Task<AdminBookingResponse> AdminUpdateBookingAsync(Guid bookingId, AdminBookingUpdateRequest request);
 }
