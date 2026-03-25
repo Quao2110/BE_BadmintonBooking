@@ -8,4 +8,5 @@ public interface IBookingRepository : IGenericRepository<Booking>
     Task<List<Booking>> GetCourtBookingsInRangeAsync(Guid courtId, DateTime startTime, DateTime endTime, IEnumerable<string> statuses);
     Task<Booking?> GetByIdWithDetailsAsync(Guid bookingId);
     Task<(IEnumerable<Booking> Items, int TotalItems)> GetUserHistoryAsync(Guid userId, string? status, DateTime? fromDate, DateTime? toDate, int page, int pageSize);
+    Task<(IEnumerable<Booking> Items, int TotalItems)> GetAllForAdminAsync(Guid? userId, Guid? courtId, string? status, DateTime? fromDate, DateTime? toDate, int page, int pageSize);
 }

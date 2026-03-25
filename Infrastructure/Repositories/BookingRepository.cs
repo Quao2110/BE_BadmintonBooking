@@ -84,4 +84,50 @@ public class BookingRepository : GenericRepository<Booking>, IBookingRepository
 
         return (items, totalItems);
     }
+
+    public async Task<(IEnumerable<Booking> Items, int TotalItems)> GetAllForAdminAsync(Guid? userId, Guid? courtId, string? status, DateTime? fromDate, DateTime? toDate, int page, int pageSize)
+    {
+        var query = _context.Bookings
+            .Include(b => b.Court)
+            .Include(b => b.User)
+            .Include(b => b.BookingServices)
+                .ThenInclude(bs => bs.Service)
+            .AsQueryable();
+
+        if (userId.HasValue)
+        {
+            query = query.Where(b => b.UserId == userId.Value);
+        }
+
+        if (courtId.HasValue)
+        {
+            query = query.Where(b => b.CourtId == courtId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var normalized = status.Trim();
+            query = query.Where(b => b.Status == normalized);
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(b => b.StartTime >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            query = query.Where(b => b.EndTime <= toDate.Value);
+        }
+
+        var totalItems = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(b => b.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalItems);
+    }
 }

@@ -217,6 +217,121 @@ public class BookingService : IBookingService
         return ToBookingResponse(updated);
     }
 
+    public async Task<PagedResult<AdminBookingResponse>> GetAllForAdminAsync(AdminBookingQuery query)
+    {
+        var page = query.Page <= 0 ? 1 : query.Page;
+        var pageSize = query.PageSize <= 0 ? 10 : Math.Min(query.PageSize, MaxPageSize);
+
+        if (!string.IsNullOrWhiteSpace(query.Status) && !IsValidStatus(query.Status))
+        {
+            throw new Exception("Invalid booking status filter.");
+        }
+
+        var (items, totalItems) = await _unitOfWork.BookingRepository.GetAllForAdminAsync(
+            query.UserId,
+            query.CourtId,
+            query.Status,
+            query.FromDate,
+            query.ToDate,
+            page,
+            pageSize);
+
+        return new PagedResult<AdminBookingResponse>
+        {
+            Items = items.Select(ToAdminBookingResponse).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+        };
+    }
+
+    public async Task<AdminBookingResponse> AdminUpdateBookingAsync(Guid bookingId, AdminBookingUpdateRequest request)
+    {
+        var booking = await _unitOfWork.BookingRepository.GetByIdWithDetailsAsync(bookingId)
+            ?? throw new Exception("Booking not found.");
+
+        if (request.Status != null)
+        {
+            var normalizedStatus = NormalizeStatus(request.Status);
+            if (!IsValidStatus(normalizedStatus))
+            {
+                throw new Exception("Invalid status. Allowed values: Pending, Confirmed, Cancelled.");
+            }
+
+            booking.Status = normalizedStatus;
+        }
+
+        if (request.IsPaid.HasValue)
+        {
+            booking.IsPaid = request.IsPaid.Value;
+        }
+
+        var newCourtId = request.CourtId ?? booking.CourtId;
+        var newStartTime = request.StartTime ?? booking.StartTime;
+        var newEndTime = request.EndTime ?? booking.EndTime;
+
+        var timeOrCourtChanged = request.CourtId.HasValue || request.StartTime.HasValue || request.EndTime.HasValue;
+
+        if (timeOrCourtChanged)
+        {
+            if (newStartTime >= newEndTime)
+            {
+                throw new Exception("EndTime must be greater than StartTime.");
+            }
+
+            if (newStartTime.Date != newEndTime.Date)
+            {
+                throw new Exception("Booking must be within the same day.");
+            }
+
+            if (request.CourtId.HasValue)
+            {
+                var court = await _unitOfWork.CourtRepository.GetByIdAsync(request.CourtId.Value)
+                    ?? throw new Exception("Court not found.");
+
+                if (!string.Equals(court.Status, "Active", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new Exception("Court is not active.");
+                }
+            }
+
+            var hasOverlap = await _unitOfWork.BookingRepository.ExistsOverlappingAsync(
+                newCourtId,
+                newStartTime,
+                newEndTime,
+                BookingStatus.BlockingStatuses,
+                excludeBookingId: bookingId);
+
+            if (hasOverlap)
+            {
+                throw new Exception("Booking time overlaps with an existing booking.");
+            }
+
+            booking.CourtId = newCourtId;
+            booking.StartTime = newStartTime;
+            booking.EndTime = newEndTime;
+        }
+
+        if (request.TotalPrice.HasValue)
+        {
+            if (request.TotalPrice.Value < 0)
+            {
+                throw new Exception("TotalPrice cannot be negative.");
+            }
+
+            booking.TotalPrice = request.TotalPrice.Value;
+        }
+
+        _unitOfWork.BookingRepository.Update(booking);
+        await _unitOfWork.SaveChangesAsync();
+
+        var updated = await _unitOfWork.BookingRepository.GetByIdWithDetailsAsync(bookingId)
+            ?? throw new Exception("Cannot load updated booking.");
+
+        return ToAdminBookingResponse(updated);
+    }
+
     public async Task<BookingResponse> CancelMyBookingAsync(Guid userId, Guid bookingId)
     {
         var booking = await _unitOfWork.BookingRepository.GetByIdWithDetailsAsync(bookingId)
@@ -356,6 +471,33 @@ public class BookingService : IBookingService
             Status = booking.Status,
             IsPaid = booking.IsPaid ?? false,
             CreatedAt = booking.CreatedAt
+        };
+    }
+
+    private static AdminBookingResponse ToAdminBookingResponse(Booking booking)
+    {
+        return new AdminBookingResponse
+        {
+            Id = booking.Id,
+            UserId = booking.UserId,
+            UserFullName = booking.User?.FullName ?? string.Empty,
+            UserEmail = booking.User?.Email ?? string.Empty,
+            UserPhoneNumber = booking.User?.PhoneNumber ?? string.Empty,
+            CourtId = booking.CourtId,
+            CourtName = booking.Court?.CourtName ?? string.Empty,
+            StartTime = booking.StartTime,
+            EndTime = booking.EndTime,
+            TotalPrice = booking.TotalPrice ?? 0,
+            Status = booking.Status,
+            IsPaid = booking.IsPaid ?? false,
+            CreatedAt = booking.CreatedAt,
+            Services = booking.BookingServices.Select(bs => new BookingServiceItemResponse
+            {
+                ServiceId = bs.ServiceId,
+                ServiceName = bs.Service?.ServiceName ?? string.Empty,
+                Quantity = bs.Quantity ?? 0,
+                PriceAtBooking = bs.PriceAtBooking ?? 0
+            }).ToList()
         };
     }
 
